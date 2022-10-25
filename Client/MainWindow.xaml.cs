@@ -39,7 +39,8 @@ namespace Client
             IAesSecurityService aesSecurityService = new AesSecurityService();
             var httpClient = new HttpClient()
             {
-                BaseAddress = new Uri("https://localhost:7053"),
+                BaseAddress = new Uri("https://10.160.88.211:7053"),
+                //BaseAddress = new Uri("https://localhost:7053")
             };
             _userService = new UserService(httpClient, aesSecurityService);
             _textService = new TextService(_userService, httpClient, aesSecurityService);

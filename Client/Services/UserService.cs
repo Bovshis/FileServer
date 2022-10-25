@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,10 +29,7 @@ namespace Client.Services
         public async Task<string> LogInAsync(string userEmail, string userPassword)
         {
             var loginRequest = new LoginRequest() { Email = userEmail, Password = userPassword };
-            var jsonContent = JsonConvert.SerializeObject(loginRequest);
-            var loginContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-            var regResponse = await _httpClient.PostAsync("/api/Security/login", loginContent);
+            var regResponse = await _httpClient.PostAsJsonAsync("/api/Security/login", loginRequest);
             if (!regResponse.IsSuccessStatusCode)
             {
                 return $"Login failed! Status code: {await regResponse.Content.ReadAsStringAsync()}";
@@ -56,21 +54,13 @@ namespace Client.Services
             ecdh.HashAlgorithm = CngAlgorithm.Sha256;
             var clientPublicKey = ecdh.PublicKey.ToByteArray();
 
-            var data = JsonConvert.SerializeObject(new {ClientId, ClientPublicKey = clientPublicKey });
-            var connectionContent = new StringContent(data, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("/api/Security/generate-session-key", connectionContent);
+            var response = await _httpClient.PostAsJsonAsync("/api/Security/generate-session-key", new { ClientId, ClientPublicKey = clientPublicKey });
             if (!response.IsSuccessStatusCode)
             {
                 return $"Connection failed! Status code: {await response.Content.ReadAsStringAsync()}";
             }
 
-            var contentStream = await response.Content.ReadAsStreamAsync();
-            var str = await response.Content.ReadAsStringAsync();
-            using var streamReader = new StreamReader(contentStream);
-            using var jsonReader = new JsonTextReader(streamReader);
-            var serializer = new JsonSerializer();
-            var generateSessionKeyResponse = serializer.Deserialize<GenerateSessionKeyResponse>(jsonReader);
+            var generateSessionKeyResponse = await response.Content.ReadAsAsync<GenerateSessionKeyResponse>();
             var sessionKey = ecdh.DeriveKeyMaterial(CngKey.Import(generateSessionKeyResponse.PublicEcdfKey, CngKeyBlobFormat.EccPublicBlob));
             _aesSecurityService.SetAesConfiguration(sessionKey, generateSessionKeyResponse.IV);
             return $"Connection established! Secret Key: {Encoding.UTF8.GetString(sessionKey)}";

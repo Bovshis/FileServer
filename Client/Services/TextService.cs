@@ -76,7 +76,7 @@ namespace Client.Services
             var response = await _httpClient.PutAsync($"api/Text/edit-text?base64EncryptedTextName={base64EncryptedFileName}&clientId={_userService.ClientId}", content);
             if (!response.IsSuccessStatusCode)
             {
-                return $"Text didn't delete! Status code: {response.StatusCode} {await response.Content.ReadAsStringAsync()}";
+                return $"Text didn't edit/create! Status code: {response.StatusCode} {await response.Content.ReadAsStringAsync()}";
             }
 
             return "Text edited";
